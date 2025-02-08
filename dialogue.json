@@ -1,0 +1,17 @@
+{
+    "npc1": {
+      "name": "Elder",
+      "lines": [
+        "Welcome, traveler. The path ahead is mysterious.",
+        "Collect the fireflies to illuminate your way."
+      ]
+    },
+    "npc2": {
+      "name": "Guardian",
+      "lines": [
+        "The gate will open only when the stars align...",
+        "Only when the swarm is whole shall the path unveil."
+      ]
+    }
+  }
+  

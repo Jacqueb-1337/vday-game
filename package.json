@@ -1,0 +1,22 @@
+{
+  "name": "cozy-adventure-game",
+  "version": "1.0.0",
+  "description": "A cozy adventure game built with Three.js featuring a painterly 32x32 tile-based world.",
+  "main": "index.html",
+  "window": {
+    "title": "Cozy Adventure Game",
+    "width": 800,
+    "height": 600,
+    "toolbar": false
+  },
+  "dependencies": {
+  },
+  "keywords": [
+    "game",
+    "three.js",
+    "adventure",
+    "tile-based"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
