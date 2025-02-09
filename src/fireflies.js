@@ -1,71 +1,49 @@
 import * as THREE from 'three';
+import { scene } from '../main.js'; // Import scene from main.js
 
-export let fireflyParticles, fireflyGeometry, fireflyMaterial;
+export let fireflies = [];
 export let fireflyCount = 0; // Declare and initialize fireflyCount
 const maxFireflies = 8;
 const minFireflies = 5;
 
 export function spawnFireflies(tilemap, scene, bloomPass) {
+    console.warn("spawnFireflies called"); // Debug log
     if (!tilemap || !Array.isArray(tilemap)) {
         console.error("spawnFireflies: tilemap is not defined or not an array.");
         return;
     }
 
     const grassTiles = tilemap.filter(t => t.type === "tall_grass");
-
-    const newPositions = [];
-    const newVelocities = [];
-    const newOrigins = [];
+    console.warn("Grass tiles found:", grassTiles.length); // Debug log
 
     grassTiles.forEach(tile => {
         if (Math.random() < 0.2 && fireflyCount < maxFireflies && !tile.hasFirefly) { // 20% chance to spawn per tile, only one firefly per tile
             const x = tile.x + (Math.random() - 0.5) * 0.8;
             const y = tile.y + (Math.random() - 0.5) * 0.8;
-            const z = Math.random() * 0.5 + 0.2; // Slightly above the tile
+            const z = 2; // Set z position above other objects
 
-            newPositions.push(x, y, z);
-            newVelocities.push((Math.random() - 0.5) * 0.005, (Math.random() - 0.5) * 0.005, (Math.random() - 0.1) * 0.005); // Reduced speed
-            newOrigins.push(x, y, z);
+            const geometry = new THREE.SphereGeometry(10, 8, 8);
+            const material = new THREE.MeshBasicMaterial({ color: 0xffcc00, emissive: 0xffcc00, emissiveIntensity: 1, transparent: true, opacity: 1 });
+            const firefly = new THREE.Mesh(geometry, material);
+            firefly.position.set(x, y, z);
+            firefly.userData = {
+                origin: { x, y, z },
+                velocity: { x: (Math.random() - 0.5) * 0.005, y: (Math.random() - 0.5) * 0.005, z: (Math.random() - 0.1) * 0.005 }
+            };
+            firefly.layers.set(1); // Enable bloom layer rendering
+            firefly.visible = true; // Ensure firefly is visible
+            scene.add(firefly);
+            fireflies.push(firefly);
             fireflyCount++;
             tile.hasFirefly = true; // Mark tile as having a firefly
 
-            console.info("Firefly spawned at", x, y, z);
+            console.info("Firefly spawned at", x, y, z); // Debug log
         }
     });
 
-    if (newPositions.length === 0) {
+    if (fireflies.length === 0) {
         console.warn("No fireflies were spawned.");
         return; // Avoid creating empty geometry
-    }
-
-    if (!fireflyGeometry) {
-        fireflyGeometry = new THREE.BufferGeometry();
-        fireflyGeometry.setAttribute("position", new THREE.Float32BufferAttribute(newPositions, 3));
-        fireflyGeometry.setAttribute("velocity", new THREE.Float32BufferAttribute(newVelocities, 3));
-        fireflyGeometry.setAttribute("origin", new THREE.Float32BufferAttribute(newOrigins, 3));
-
-        fireflyMaterial = new THREE.PointsMaterial({
-            color: 0xffcc00,
-            size: 3.6, // Slightly larger to make them more visible
-            transparent: true,
-            opacity: 0.9,
-            blending: THREE.AdditiveBlending,
-        });
-
-        fireflyParticles = new THREE.Points(fireflyGeometry, fireflyMaterial);
-        scene.add(fireflyParticles);
-    } else {
-        const positions = fireflyGeometry.attributes.position.array;
-        const velocities = fireflyGeometry.attributes.velocity.array;
-        const origins = fireflyGeometry.attributes.origin.array;
-
-        fireflyGeometry.setAttribute("position", new THREE.Float32BufferAttribute([...positions, ...newPositions], 3));
-        fireflyGeometry.setAttribute("velocity", new THREE.Float32BufferAttribute([...velocities, ...newVelocities], 3));
-        fireflyGeometry.setAttribute("origin", new THREE.Float32BufferAttribute([...origins, ...newOrigins], 3));
-
-        fireflyGeometry.attributes.position.needsUpdate = true;
-        fireflyGeometry.attributes.velocity.needsUpdate = true;
-        fireflyGeometry.attributes.origin.needsUpdate = true;
     }
 
     animateFireflies(bloomPass, tilemap);
@@ -74,68 +52,66 @@ export function spawnFireflies(tilemap, scene, bloomPass) {
 
 // Animate Fireflies (Floating & Flickering)
 function animateFireflies(bloomPass, tilemap) {
-    const positions = fireflyGeometry.attributes.position.array;
-    const velocities = fireflyGeometry.attributes.velocity.array;
-    const origins = fireflyGeometry.attributes.origin.array;
-
     const time = Date.now() * 0.002; // Time variable for movement patterns
 
-    for (let i = 0; i < positions.length; i += 3) {
+    fireflies.forEach(firefly => {
+        const { origin, velocity } = firefly.userData;
+
         // Calculate next position with random offsets for each firefly
         const randomOffsetX = Math.random() * 0.005;
         const randomOffsetY = Math.random() * 0.005;
-        const nextX = positions[i] + Math.sin(time + i * 0.1 + randomOffsetX) * 0.0025 + velocities[i]; // Reduced speed
-        const nextY = positions[i + 1] + Math.cos(time + i * 0.1 + randomOffsetY) * 0.0025 + velocities[i + 1]; // Reduced speed
+        const nextX = firefly.position.x + Math.sin(time + randomOffsetX) * 0.0025 + velocity.x; // Reduced speed
+        const nextY = firefly.position.y + Math.cos(time + randomOffsetY) * 0.0025 + velocity.y; // Reduced speed
 
         // Check if the next position is inside a non-walkable tile
         const tile = tilemap.find(t => Math.floor(t.x) === Math.floor(nextX) && Math.floor(t.y) === Math.floor(nextY));
         if (tile && !tile.walkable) {
             // Reverse velocity to keep firefly within walkable areas
-            velocities[i] *= -1;
-            velocities[i + 1] *= -1;
+            velocity.x *= -1;
+            velocity.y *= -1;
         } else {
             // Apply subtle floating movement using sine and cosine waves
-            positions[i] = nextX;   // X movement
-            positions[i + 1] = nextY; // Y movement
-            positions[i + 2] += Math.sin(time * 2 + i + randomOffsetX) * 0.001; // Reduced bobbing effect
+            firefly.position.x = nextX;   // X movement
+            firefly.position.y = nextY; // Y movement
+            firefly.position.z += Math.sin(time * 2 + randomOffsetX) * 0.001; // Reduced bobbing effect
         }
 
         // Ensure fireflies stay within range of their origin tile
-        const dx = positions[i] - origins[i];
-        const dy = positions[i + 1] - origins[i + 1];
-        if (Math.abs(dx) > 1.5) velocities[i] *= -1;
-        if (Math.abs(dy) > 1.5) velocities[i + 1] *= -1;
+        const dx = firefly.position.x - origin.x;
+        const dy = firefly.position.y - origin.y;
+        if (Math.abs(dx) > 1.5) velocity.x *= -1;
+        if (Math.abs(dy) > 1.5) velocity.y *= -1;
 
         // Apply slight random flicker effect
-        const flicker = 0.7 + Math.sin(time * 3 + i + randomOffsetY) * 0.3;
-        fireflyMaterial.opacity = flicker;
-        bloomPass.strength = flicker * 5.0; // Increase bloom strength
-        bloomPass.radius = 1.0; // Increase bloom area
-    }
+        const flicker = 0.7 + Math.sin(time * 3 + randomOffsetY) * 0.3;
+        firefly.material.opacity = flicker;
+        bloomPass.strength = Math.max(flicker * 30.0, 5.0); // Increase bloom strength
+        bloomPass.radius = 3.0; // Increase bloom area
+    });
 
-    fireflyGeometry.attributes.position.needsUpdate = true;
     requestAnimationFrame(() => animateFireflies(bloomPass, tilemap));
+
+    // Debug logging to confirm visibility and positions
+    fireflies.forEach(firefly => {
+        if (!scene.children.includes(firefly)) {
+            console.error("Firefly not added to scene:", firefly.position);
+        }
+    });
 }
 
 // Ensure fireflies never stop moving by modifying velocity update logic
 function updateFireflyVelocities() {
-    if (!fireflyGeometry || !fireflyGeometry.attributes.velocity) {
-        console.warn("updateFireflyVelocities called before fireflyGeometry is initialized.");
-        return; // Exit function if fireflyGeometry is not ready
-    }
+    fireflies.forEach(firefly => {
+        const velocity = firefly.userData.velocity;
 
-    const velocities = fireflyGeometry.attributes.velocity.array;
-
-    for (let i = 0; i < velocities.length; i += 3) {
-        velocities[i] += (Math.random() - 0.5) * 0.001;   // Reduced random jitter X
-        velocities[i + 1] += (Math.random() - 0.5) * 0.001; // Reduced random jitter Y
+        velocity.x += (Math.random() - 0.5) * 0.001;   // Reduced random jitter X
+        velocity.y += (Math.random() - 0.5) * 0.001; // Reduced random jitter Y
 
         // Cap the velocities to prevent them from becoming too fast
-        velocities[i] = Math.min(Math.max(velocities[i], -0.005), 0.005); // Reduced speed cap
-        velocities[i + 1] = Math.min(Math.max(velocities[i + 1], -0.005), 0.005); // Reduced speed cap
-    }
+        velocity.x = Math.min(Math.max(velocity.x, -0.005), 0.005); // Reduced speed cap
+        velocity.y = Math.min(Math.max(velocity.y, -0.005), 0.005); // Reduced speed cap
+    });
 
-    fireflyGeometry.attributes.velocity.needsUpdate = true;
     setTimeout(updateFireflyVelocities, 1000); // Update velocities every second
 }
 
@@ -147,21 +123,12 @@ export function manageFireflies(tilemap, scene, bloomPass) {
 
     if (fireflyCount > maxFireflies) {
         // Remove excess fireflies
-        const positions = fireflyGeometry.attributes.position.array;
-        const velocities = fireflyGeometry.attributes.velocity.array;
-        const origins = fireflyGeometry.attributes.origin.array;
-
-        for (let i = positions.length - 3; i >= 0 && fireflyCount > maxFireflies; i -= 3) {
-            positions.splice(i, 3);
-            velocities.splice(i, 3);
-            origins.splice(i, 3);
+        for (let i = fireflies.length - 1; i >= 0 && fireflyCount > maxFireflies; i--) {
+            const firefly = fireflies[i];
+            scene.remove(firefly);
+            fireflies.splice(i, 1);
             fireflyCount--;
         }
-
-        fireflyGeometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-        fireflyGeometry.setAttribute("velocity", new THREE.Float32BufferAttribute(velocities, 3));
-        fireflyGeometry.setAttribute("origin", new THREE.Float32BufferAttribute(origins, 3));
-        fireflyGeometry.attributes.position.needsUpdate = true;
     }
 
     setTimeout(() => manageFireflies(tilemap, scene, bloomPass), 2000); // Check every 2 seconds

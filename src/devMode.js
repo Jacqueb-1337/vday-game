@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { updateTilemap, saveTilemap, tiles, tilemap, renderer, camera, scene } from '../main.js';
+import { camera } from './camera.js'; // Import camera from camera.js
+import { renderer } from './render.js'; // Import renderer from render.js
+import { updateTilemap, saveTilemap, tiles, tilemap } from './tilemap.js'; // Import all exports from tilemap.js
+import { scene } from '../main.js'; // Import scene from main.js
+import { drawDevModeMarkers } from './devModeMarkers.js'; // Import drawDevModeMarkers from devModeMarkers.js
 
 let _devMode = false; // Internal variable to hold the devMode state
 let mousePosition = new THREE.Vector2(); // Global variable to store the latest mouse position
@@ -13,6 +17,15 @@ Object.defineProperty(window, 'devMode', {
         _devMode = value;
         window.disableCollision = value; // Set disableCollision based on devMode
         console.log(`Dev Mode is now: ${_devMode}`);
+        if (_devMode) {
+            drawDevModeMarkers(scene, tiles);
+        } else {
+            // Hide all markers when dev mode is disabled
+            const markerGroup = scene.getObjectByName('devModeMarkers');
+            if (markerGroup) {
+                markerGroup.children.forEach(marker => marker.visible = false);
+            }
+        }
     }
 });
 
@@ -23,24 +36,22 @@ export const devMode = window.devMode;
 document.addEventListener("contextmenu", (event) => {
     if (!window.devMode) return;
     event.preventDefault();
-    if (window.devMode) {
-        const rect = renderer.domElement.getBoundingClientRect();
-        const mouse = new THREE.Vector2(
-            ((event.clientX - rect.left) / rect.width) * 2 - 1,
-            -((event.clientY - rect.top) / rect.height) * 2 + 1
-        );
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
 
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(scene.children);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
 
-        if (intersects.length > 0) {
-            const hoveredTile = intersects[0].object;
-            hoveredTile.userData.walkable = !hoveredTile.userData.walkable;
-            hoveredTile.material.color.set(hoveredTile.userData.walkable ? 0x88cc88 : 0x444444); // Change color based on walkability
-            updateTilemap();
-            saveTilemap();
-        }
+    if (intersects.length > 0) {
+        const hoveredTile = intersects[0].object;
+        hoveredTile.userData.walkable = !hoveredTile.userData.walkable;
+        updateTilemap();
+        saveTilemap();
+        drawDevModeMarkers(scene, tiles); // Update markers
     }
 });
 
@@ -102,6 +113,8 @@ document.addEventListener("click", (event) => {
     setTimeout(() => {
         lastClickedTile = { x: null, y: null };
     }, 200);
+
+    drawDevModeMarkers(scene, tiles); // Update markers
 });
 
 // Dev Mode - Space Key to Change Tile Type
@@ -120,34 +133,17 @@ document.addEventListener("keydown", (event) => {
             hoveredTile.userData.type = newType;
             updateTilemap();
             saveTilemap();
+            drawDevModeMarkers(scene, tiles); // Update markers
         }
     }
 });
 
-// Highlight Tile on Hover in Dev Mode
-document.addEventListener("mousemove", (event) => {
-    const rect = renderer.domElement.getBoundingClientRect();
-    mousePosition.set(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
-    );
-
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mousePosition, camera);
-    const intersects = raycaster.intersectObjects(scene.children);
-
+// Render dev mode markers
+function render() {
     if (window.devMode) {
-        tiles.forEach(tile => {
-            tile.material.color.set(tile.userData.walkable ? 0x00ff00 : 0xff0000); // Green for walkable, red for non-walkable
-        });
-
-        if (intersects.length > 0) {
-            const hoveredTile = intersects[0].object;
-            hoveredTile.material.color.setHex(0xaaaaaa); // Highlight color
-        }
-    } else {
-        tiles.forEach(tile => {
-            tile.material.color.set(tile.userData.walkable ? 0x333333 : 0x111111);
-        });
+        drawDevModeMarkers(scene, tiles);
     }
-});
+    requestAnimationFrame(render);
+}
+
+render();

@@ -1,17 +1,17 @@
 {
-    "npc1": {
-      "name": "Elder",
-      "lines": [
-        "Welcome, traveler. The path ahead is mysterious.",
-        "Collect the fireflies to illuminate your way."
-      ]
+  "guardian": {
+    "name": "Ancient Guardian",
+    "lines": [
+      "The stars once danced upon this gate,",
+      "A guiding light, a sealed fate.",
+      "Yet dim are the flames that seek passage through,",
+      "Bring forth their brethren, or be lost anew."
+    ],
+    "missing_fireflies": {
+      "3+": "Three lost flames wander the veil—gather them, or the path shall fail.",
+      "2": "Two embers flicker in the dark—bring them home, and light the spark.",
+      "1": "One light flickers beyond thy grasp—find it, lest the gate remain fast."
     },
-    "npc2": {
-      "name": "Guardian",
-      "lines": [
-        "The gate will open only when the stars align...",
-        "Only when the swarm is whole shall the path unveil."
-      ]
-    }
+    "unlocked": "The veil lifts, the stars align—step forth, for now the path is thine."
   }
-  
+}
