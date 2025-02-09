@@ -71,7 +71,7 @@ export function createTilemap() {
                     });
 
                     let subtypeTile = new THREE.Mesh(geometry, subtypeMaterial);
-                    subtypeTile.position.set(x, y, 0);
+                    subtypeTile.position.set(x, y, getLayerIndex(tileData.subtype)); // Set z position based on subtype layer
                     scene.add(subtypeTile);
                 } else {
                     // Default to grassgeneric.png if no subtype is specified
@@ -85,7 +85,7 @@ export function createTilemap() {
                     });
 
                     let defaultSubtypeTile = new THREE.Mesh(geometry, defaultSubtypeMaterial);
-                    defaultSubtypeTile.position.set(x, y, 0);
+                    defaultSubtypeTile.position.set(x, y, getLayerIndex('grassgeneric')); // Set z position based on default subtype layer
                     scene.add(defaultSubtypeTile);
                 }
             } else {

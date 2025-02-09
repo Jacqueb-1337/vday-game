@@ -1,0 +1,16 @@
+{
+  "npcs": [
+    {
+      "name": "NPC1",
+      "x": 2,
+      "y": 3,
+      "texture": "/characters/npcs/npc1_south_1.png"
+    },
+    {
+      "name": "NPC2",
+      "x": -1,
+      "y": 4,
+      "texture": "/characters/npcs/npc1_south_1.png"
+    }
+  ]
+}

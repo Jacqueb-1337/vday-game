@@ -695,25 +695,26 @@
     {
       "x": -2,
       "y": 2,
-      "walkable": true,
+      "walkable": false,
       "originalColor": 8965256
     },
     {
       "x": -2,
       "y": 3,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": -2,
       "y": 4,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": -2,
       "y": 5,
-      "originalColor": 4473924
+      "originalColor": 4473924,
+      "walkable": true
     },
     {
       "x": -1,
@@ -781,19 +782,19 @@
     {
       "x": -1,
       "y": 1,
-      "walkable": true,
+      "walkable": false,
       "originalColor": 8965256
     },
     {
       "x": -1,
       "y": 2,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": -1,
       "y": 3,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
@@ -805,7 +806,8 @@
     {
       "x": -1,
       "y": 5,
-      "originalColor": 4473924
+      "originalColor": 4473924,
+      "walkable": true
     },
     {
       "x": 0,
@@ -880,25 +882,26 @@
     {
       "x": 0,
       "y": 2,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": 0,
       "y": 3,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": 0,
       "y": 4,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": 0,
       "y": 5,
-      "originalColor": 4473924
+      "originalColor": 4473924,
+      "walkable": true
     },
     {
       "x": 1,
@@ -974,19 +977,20 @@
     {
       "x": 1,
       "y": 3,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": 1,
       "y": 4,
-      "walkable": false,
+      "walkable": true,
       "originalColor": 4473924
     },
     {
       "x": 1,
       "y": 5,
-      "originalColor": 4473924
+      "originalColor": 4473924,
+      "walkable": true
     },
     {
       "x": 2,
@@ -1041,6 +1045,11 @@
       "y": -1,
       "walkable": false,
       "originalColor": 4473924
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "walkable": true
     },
     {
       "x": 2,
@@ -1326,11 +1335,6 @@
       "x": 5,
       "y": 5,
       "originalColor": 4473924
-    },
-    {
-      "x": 2,
-      "y": 0,
-      "walkable": true
     }
   ]
 }
