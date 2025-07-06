@@ -196,21 +196,21 @@ export class DevModeManager {
         
         // Enhanced keyboard shortcuts
         this.keydownHandler = (event) => {
-            if (event.key === 'Escape') {
-                if (this.isDragging) {
-                    this.cancelDragSelection();
-                    event.preventDefault();
-                } else if (this.expansionMode) {
-                    this.toggleExpansionMode();
-                    event.preventDefault();
-                } else if (this.popup && this.popup.style.display === 'block') {
-                    this.closePopup();
-                    event.preventDefault();
-                }
-            }
-            
             // Dev mode specific shortcuts (only when active)
             if (this.isActive) {
+                if (event.key === 'Escape') {
+                    if (this.isDragging) {
+                        this.cancelDragSelection();
+                        event.preventDefault();
+                    } else if (this.expansionMode) {
+                        this.toggleExpansionMode();
+                        event.preventDefault();
+                    } else if (this.popup && this.popup.style.display === 'block') {
+                        this.closePopup();
+                        event.preventDefault();
+                    }
+                }
+                
                 switch(event.key.toLowerCase()) {
                     case 'e':
                         event.preventDefault();
@@ -244,7 +244,7 @@ export class DevModeManager {
                 }
             }
             
-            // F12 or Ctrl+Shift+I to open dev tools
+            // F12 or Ctrl+Shift+I to open dev tools (always available)
             if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && event.key === 'I')) {
                 if (typeof nw !== 'undefined' && nw.Window) {
                     nw.Window.get().showDevTools();
@@ -298,14 +298,20 @@ export class DevModeManager {
             this.tileTypeSelector.style.display = 'none';
         }
         
-        // Exit expansion mode if active
+        // Exit expansion mode if active and clean up all state
         if (this.expansionMode) {
             this.expansionMode = false;
             this.hideExpansionModeUI();
             if (this.isDragging) {
                 this.cancelDragSelection();
             }
+            // Reset expansion tool to default
+            this.expansionTool = 'create';
         }
+        
+        // Hide any open tile grids
+        this.hideTileGrid();
+        this.hidePopupTileGrid();
         
         // Stop camera monitoring
         this.stopCameraMonitoring();
@@ -1163,6 +1169,9 @@ export class DevModeManager {
     // New methods for enhanced world expansion
     
     toggleExpansionMode() {
+        // Only allow expansion mode when dev mode is active
+        if (!this.isActive) return;
+        
         // Cancel any ongoing drag before switching modes
         if (this.isDragging) {
             this.cancelDragSelection();
@@ -1878,12 +1887,72 @@ export class DevModeManager {
         
         gridContainer.appendChild(grid);
         
+        // Button container for refresh and close buttons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        `;
+        
+        // Refresh button
+        const refreshBtn = document.createElement('button');
+        refreshBtn.textContent = '🔄 Refresh Assets';
+        refreshBtn.style.cssText = `
+            padding: 10px 20px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            transition: background 0.2s;
+        `;
+        refreshBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            // Show loading state
+            refreshBtn.textContent = '⏳ Refreshing...';
+            refreshBtn.disabled = true;
+            
+            try {
+                // Reload tile types from assets
+                await this.loadTileTypes();
+                
+                // Close and reopen the grid to show updated tiles
+                this.hideTileGrid();
+                // Small delay to ensure cleanup
+                setTimeout(() => {
+                    this.showTileGrid();
+                }, 100);
+                
+                console.log('Tile assets refreshed successfully');
+            } catch (error) {
+                console.error('Error refreshing tile assets:', error);
+                alert('Error refreshing tile assets: ' + error.message);
+                
+                // Reset button state
+                refreshBtn.textContent = '🔄 Refresh Assets';
+                refreshBtn.disabled = false;
+            }
+        });
+        refreshBtn.addEventListener('mouseenter', () => {
+            if (!refreshBtn.disabled) {
+                refreshBtn.style.background = '#005a9e';
+            }
+        });
+        refreshBtn.addEventListener('mouseleave', () => {
+            if (!refreshBtn.disabled) {
+                refreshBtn.style.background = '#007acc';
+            }
+        });
+        
         // Close button
         const closeBtn = document.createElement('button');
         closeBtn.textContent = 'Close';
         closeBtn.style.cssText = `
-            display: block;
-            margin: 0 auto;
             padding: 10px 20px;
             background: #666;
             color: white;
@@ -1893,7 +1962,10 @@ export class DevModeManager {
             font-family: Arial, sans-serif;
         `;
         closeBtn.addEventListener('click', () => this.hideTileGrid());
-        gridContainer.appendChild(closeBtn);
+        
+        buttonContainer.appendChild(refreshBtn);
+        buttonContainer.appendChild(closeBtn);
+        gridContainer.appendChild(buttonContainer);
         
         backdrop.appendChild(gridContainer);
         
@@ -2111,12 +2183,75 @@ export class DevModeManager {
         
         gridContainer.appendChild(grid);
         
+        // Button container for refresh and close buttons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        `;
+        
+        // Refresh button
+        const refreshBtn = document.createElement('button');
+        refreshBtn.textContent = '🔄 Refresh Assets';
+        refreshBtn.style.cssText = `
+            padding: 10px 20px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            transition: background 0.2s;
+        `;
+        refreshBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            // Show loading state
+            refreshBtn.textContent = '⏳ Refreshing...';
+            refreshBtn.disabled = true;
+            
+            try {
+                // Reload tile types from assets
+                await this.loadTileTypes();
+                
+                // Update the main tile selector display as well
+                this.updateSelectedTileDisplay();
+                
+                // Close and reopen the popup grid to show updated tiles
+                this.hidePopupTileGrid();
+                // Small delay to ensure cleanup
+                setTimeout(() => {
+                    this.showPopupTileGrid();
+                }, 100);
+                
+                console.log('Tile assets refreshed successfully');
+            } catch (error) {
+                console.error('Error refreshing tile assets:', error);
+                alert('Error refreshing tile assets: ' + error.message);
+                
+                // Reset button state
+                refreshBtn.textContent = '🔄 Refresh Assets';
+                refreshBtn.disabled = false;
+            }
+        });
+        refreshBtn.addEventListener('mouseenter', () => {
+            if (!refreshBtn.disabled) {
+                refreshBtn.style.background = '#005a9e';
+            }
+        });
+        refreshBtn.addEventListener('mouseleave', () => {
+            if (!refreshBtn.disabled) {
+                refreshBtn.style.background = '#007acc';
+            }
+        });
+        
         // Close button
         const closeBtn = document.createElement('button');
         closeBtn.textContent = 'Close';
         closeBtn.style.cssText = `
-            display: block;
-            margin: 0 auto;
             padding: 10px 20px;
             background: #666;
             color: white;
@@ -2130,7 +2265,10 @@ export class DevModeManager {
             e.preventDefault();
             this.hidePopupTileGrid();
         });
-        gridContainer.appendChild(closeBtn);
+        
+        buttonContainer.appendChild(refreshBtn);
+        buttonContainer.appendChild(closeBtn);
+        gridContainer.appendChild(buttonContainer);
         
         backdrop.appendChild(gridContainer);
         

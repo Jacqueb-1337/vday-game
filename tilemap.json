@@ -659,7 +659,8 @@
       "x": -3,
       "y": -1,
       "walkable": true,
-      "originalColor": 8965256
+      "originalColor": 8965256,
+      "type": ""
     },
     {
       "x": -3,
@@ -677,7 +678,8 @@
       "x": -3,
       "y": 2,
       "walkable": false,
-      "originalColor": 4473924
+      "originalColor": 4473924,
+      "type": "dirtpathtaperleft"
     },
     {
       "x": -3,
@@ -782,13 +784,14 @@
       "y": 2,
       "walkable": true,
       "originalColor": 8965256,
-      "type": "dirtpathb"
+      "type": "dirtpathparalleltb"
     },
     {
       "x": -2,
       "y": 3,
       "walkable": true,
-      "originalColor": 4473924
+      "originalColor": 4473924,
+      "type": ""
     },
     {
       "x": -2,
@@ -896,13 +899,14 @@
       "y": 3,
       "walkable": true,
       "originalColor": 4473924,
-      "type": "dirtpath"
+      "type": "dirtpathparallelrl"
     },
     {
       "x": -1,
       "y": 4,
       "walkable": false,
-      "originalColor": 4473924
+      "originalColor": 4473924,
+      "type": "dirtpathparallelrl"
     },
     {
       "x": -1,
@@ -997,7 +1001,7 @@
       "y": 2,
       "walkable": true,
       "originalColor": 4473924,
-      "type": "dirtpath"
+      "type": "dirtpatht"
     },
     {
       "x": 0,
