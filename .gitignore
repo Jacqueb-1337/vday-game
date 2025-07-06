@@ -10,6 +10,13 @@ launch.sh
 nwjs-*.zip
 nwjs-*.tar.gz
 
+# Build and distribution
+build/
+dist/
+*.deb
+*.dmg
+*.exe
+
 # Node modules (if any)
 node_modules/
 

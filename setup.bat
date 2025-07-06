@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo          VDay Game Setup
+echo          Willowmere Setup
 echo ========================================
 echo.
 

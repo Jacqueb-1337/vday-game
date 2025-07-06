@@ -1,6 +1,6 @@
-# VDay Game
+# Willowmere
 
-A 2D game with 3D movement capabilities, similar to Stardew Valley's top-down perspective, built with Three.js and NW.js.
+A magical 2D game with 3D movement capabilities, similar to Stardew Valley's top-down perspective, built with Three.js and NW.js. Explore the enchanting world of Willowmere, collect fireflies, and discover its secrets.
 
 ## 🚀 Quick Start
 
@@ -9,7 +9,7 @@ A 2D game with 3D movement capabilities, similar to Stardew Valley's top-down pe
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd vdaygame
+   cd willowmere
    ```
 
 2. **Run the setup script**
@@ -49,10 +49,12 @@ A 2D game with 3D movement capabilities, similar to Stardew Valley's top-down pe
 - Linux/macOS: `./setup-dev.sh`
 - Makefile: `make setup-dev`
 
-**Production Version (optimized):**
+**Production Version (optimized + builds installers):**
 - Windows: `setup-prod.bat`
 - Linux/macOS: `./setup-prod.sh`
 - Makefile: `make setup-prod`
+
+> **Note:** Production setup automatically builds installers for distribution after downloading NW.js.
 
 ## 🛠️ Development
 
@@ -105,7 +107,7 @@ Press **F5** to refresh the map without restarting the game. This:
 ## 📁 Project Structure
 
 ```
-vdaygame/
+willowmere/
 ├── src/                    # Source code
 │   ├── components/         # Game components
 │   ├── assets/            # Game assets (textures, sprites)
@@ -126,11 +128,13 @@ vdaygame/
 |---------|-------------|
 | `setup.bat` / `setup.sh` | Interactive setup (choose dev/prod) |
 | `setup-dev.bat` / `setup-dev.sh` | Install development NW.js |
-| `setup-prod.bat` / `setup-prod.sh` | Install production NW.js |
+| `setup-prod.bat` / `setup-prod.sh` | Install production NW.js + build installers |
+| `build-installers.bat` / `build-installers.sh` | Build installers (after setup) |
 | `launch.bat` / `launch.sh` | Start game (auto-generated after setup) |
 | `make setup` | Interactive setup using Makefile |
 | `make setup-dev` | Development setup using Makefile |
-| `make setup-prod` | Production setup using Makefile |
+| `make setup-prod` | Production setup + build installers using Makefile |
+| `make build` | Build installers using Makefile |
 | `make run` | Start game using Makefile |
 | `make clean` | Remove NW.js installation |
 
@@ -151,6 +155,93 @@ vdaygame/
 - **Build Tool**: Custom setup system with automatic NW.js download
 - **Rendering**: 2D sprites in 3D space with proper depth sorting
 - **Camera**: Top-down perspective with slight angle for depth
+
+## 📦 Building Installers
+
+Willowmere supports building native installers for all major platforms while keeping the game fully moddable.
+
+### Prerequisites
+
+1. **Setup the game first:**
+   ```bash
+   # Windows
+   setup-prod.bat
+   
+   # Linux/macOS  
+   ./setup-prod.sh
+   ```
+
+2. **Platform-specific requirements:**
+   - **Windows**: [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+   - **macOS**: Xcode command line tools (`xcode-select --install`)
+   - **Linux**: `dpkg-deb` (usually pre-installed)
+
+### Building Installers
+
+**Automatic (Recommended):**
+```bash
+# Windows - Sets up production NW.js and builds installers
+setup-prod.bat
+
+# Linux/macOS - Sets up production NW.js and builds installers
+./setup-prod.sh
+
+# Using Makefile
+make setup-prod
+```
+
+**Manual (after setup):**
+```bash
+# Windows
+build-installers.bat
+
+# Linux/macOS
+./build-installers.sh
+
+# Using Makefile
+make build
+```
+
+**Build for specific platform:**
+```bash
+# Windows only
+build-installers.bat windows
+
+# macOS only (on macOS)
+./build-installers.sh macos
+
+# Linux only (on Linux)
+./build-installers.sh linux
+
+# All platforms (where supported)
+./build-installers.sh all
+```
+
+### Installer Features
+
+- **Windows**: `.exe` installer with Inno Setup
+  - Installs to `Program Files\jacqueb\Willowmere\`
+  - Renames `nw.exe` to `Willowmere.exe`
+  - Creates desktop shortcut and start menu entries
+  - File associations for save files
+
+- **macOS**: `.app` bundle and `.dmg`
+  - Creates `Willowmere.app` 
+  - Option to install to `/Applications/jacqueb/`
+  - All files accessible in app bundle for modding
+
+- **Linux**: `.deb` package and `.tar.gz`
+  - Installs to `/opt/jacqueb/willowmere/`
+  - Creates desktop entry and command-line access
+  - Symlink to `/usr/local/bin/willowmere`
+
+### Modding-Friendly Design
+
+All installers preserve the complete source code structure:
+- Game assets in accessible directories
+- JSON configuration files editable
+- JavaScript source code available
+- Clear modding documentation included
 
 ## 🚨 Troubleshooting
 

@@ -1,15 +1,16 @@
-# VDay Game Makefile
+# Willowmere Makefile
 # Simple commands for setting up and running the game
 
 # Default target
-.PHONY: help setup setup-dev setup-prod run clean
+.PHONY: help setup setup-dev setup-prod run build clean build
 
 help:
-	@echo "VDay Game - Available commands:"
+	@echo "Willowmere - Available commands:"
 	@echo "  make setup      - Interactive setup (choose dev/prod)"
 	@echo "  make setup-dev  - Setup development version"
-	@echo "  make setup-prod - Setup production version" 
+	@echo "  make setup-prod - Setup production version + build installers" 
 	@echo "  make run        - Run the game (after setup)"
+	@echo "  make build      - Build installers (after setup)"
 	@echo "  make clean      - Remove NW.js installation"
 	@echo "  make help       - Show this help"
 
@@ -47,6 +48,14 @@ else
 		if [ -f "launch.sh" ]; then ./launch.sh; \
 		else echo "ERROR: launch.sh not found. Run 'make setup' first."; fi; \
 	else echo "ERROR: NW.js not found. Run 'make setup' first."; fi
+endif
+
+# Build installers
+build:
+ifeq ($(UNAME_S),Windows)
+	@cmd /c build-installers.bat
+else
+	@chmod +x build-installers.sh && ./build-installers.sh
 endif
 
 # Clean installation

@@ -1,13 +1,13 @@
 {
-  "name": "vday-game",
+  "name": "willowmere",
   "version": "1.0.0",
-  "description": "A 2D game with 3D movement capabilities using Three.js and NW.js",
+  "description": "Willowmere - A 2D game with 3D movement capabilities using Three.js and NW.js",
   "main": "index.html",
-  "keywords": ["game", "2d", "3d", "threejs", "nwjs", "stardew-like"],
-  "author": "Your Name",
+  "keywords": ["game", "2d", "3d", "threejs", "nwjs", "willowmere", "adventure"],
+  "author": "jacqueb",
   "license": "MIT",
   "window": {
-    "title": "VDay Game",
+  "title": "Willowmere",
     "width": 1280,
     "height": 720,
     "min_width": 800,
