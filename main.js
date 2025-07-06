@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { devMode } from './src/devMode.js';
+import { devMode, initializeDevMode } from './src/devMode.js';
 import { camera, updateCameraAspect } from './src/camera.js'; // Import camera and updateCameraAspect
 import { moveDirection, velocity, maxSpeed, acceleration, deceleration } from './src/controls.js'; // Import controls
 import { renderer, bloomLayer, composer, bloomPass, renderScene, setupRenderPass } from './src/render.js'; // Import rendering and bloom setup
@@ -15,6 +15,9 @@ const path = require('path');
 
 export const scene = new THREE.Scene();
 setupRenderPass(scene);
+
+// Initialize dev mode manager with scene
+initializeDevMode(scene);
 
 console.log(`Loading tilemap from: ${tilemapPath}`);
 

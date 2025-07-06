@@ -7,8 +7,11 @@
     "title": "Cozy Adventure Game",
     "width": 800,
     "height": 600,
-    "toolbar": false
+    "toolbar": true,
+    "show_in_taskbar": true,
+    "resizable": true
   },
+  "chromium-args": "--enable-logging --enable-devtools-experiments",
   "dependencies": {
   },
   "keywords": [
