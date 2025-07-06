@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { camera } from './camera.js';
 import { renderer } from './render.js';
 import { tiles, tilemap, updateTilemap, saveTilemap } from './tilemap.js';
+import { BuildingManager } from './BuildingManager.js';
 
 export class DevModeManager {
     constructor() {
@@ -19,11 +20,14 @@ export class DevModeManager {
         this.selectedTileType = ''; // Default to empty until tiles are loaded
         this.tileTypes = ['']; // Will be populated dynamically from assets
         this.expansionMode = false; // Whether we're in area expansion mode
-        this.expansionTool = 'create'; // 'create' or 'erase'
+        this.expansionTool = 'create'; // 'create', 'erase', or 'walkability'
         this.isDragging = false; // Track mouse drag state
         this.dragStart = null; // Starting position for area selection
         this.dragEnd = null; // Ending position for area selection
         this.dragPreview = null; // Visual preview of drag area
+        
+        // Initialize building manager
+        this.buildingManager = new BuildingManager(this);
         
         // Undo/Redo system
         this.undoStack = [];
@@ -51,7 +55,7 @@ export class DevModeManager {
         this.gridLayer.name = 'devModeGrid';
         this.scene.add(this.gridLayer);
         
-        // Initially hide both layers
+        // Initially hide all layers
         this.visualizationLayer.visible = false;
         this.gridLayer.visible = false;
         
@@ -65,6 +69,9 @@ export class DevModeManager {
         
         // Load available tile types from assets
         this.loadTileTypes();
+        
+        // Initialize building manager
+        this.buildingManager.init(this.scene);
     }
     
     async loadTileTypes() {
@@ -145,6 +152,15 @@ export class DevModeManager {
                 return;
             }
             
+            // Check if building manager should handle this click
+            if (this.buildingManager.buildingMode) {
+                const worldPos = this.getWorldPositionFromMouse(event);
+                if (worldPos) {
+                    this.buildingManager.handleMouseClick(event, worldPos);
+                }
+                return;
+            }
+            
             if (this.expansionMode) {
                 // In expansion mode, dragging is handled by mousedown/mouseup
                 // Click events are not used for drag selection
@@ -174,10 +190,22 @@ export class DevModeManager {
             }
         };
         
-        // Mouse move handler for drag selection
+        // Mouse move handler for drag selection and building preview
         this.mouseMoveHandler = (event) => {
-            if (!this.isActive || !this.isDragging || !this.expansionMode) return;
-            this.updateDragSelection(event);
+            if (!this.isActive) return;
+            
+            // Handle building preview
+            if (this.buildingManager.buildingMode) {
+                const worldPos = this.getWorldPositionFromMouse(event);
+                if (worldPos) {
+                    this.buildingManager.handleMouseMove(event, worldPos);
+                }
+            }
+            
+            // Handle drag selection for expansion mode
+            if (this.isDragging && this.expansionMode) {
+                this.updateDragSelection(event);
+            }
         };
         
         // Mouse up handler for drag selection
@@ -193,6 +221,23 @@ export class DevModeManager {
         document.addEventListener('mousedown', this.mouseDownHandler);
         document.addEventListener('mousemove', this.mouseMoveHandler);
         document.addEventListener('mouseup', this.mouseUpHandler);
+        
+        // Add wheel event handler for object resizing
+        this.wheelHandler = (event) => {
+            if (!this.isActive || !this.buildingManager.buildingMode) return;
+            
+            // Only handle wheel events over the canvas
+            const rect = renderer.domElement.getBoundingClientRect();
+            const isOverCanvas = event.clientX >= rect.left && event.clientX <= rect.right &&
+                               event.clientY >= rect.top && event.clientY <= rect.bottom;
+            
+            if (isOverCanvas) {
+                event.preventDefault();
+                this.buildingManager.handleSizeScroll(event);
+            }
+        };
+        
+        document.addEventListener('wheel', this.wheelHandler, { passive: false });
         
         // Enhanced keyboard shortcuts
         this.keydownHandler = (event) => {
@@ -219,6 +264,10 @@ export class DevModeManager {
                     case 'g':
                         event.preventDefault();
                         this.toggleGrid();
+                        break;
+                    case 'b':
+                        event.preventDefault();
+                        this.buildingManager.toggleBuildingMode();
                         break;
                     case 'q':
                         if (this.expansionMode) {
@@ -272,13 +321,17 @@ export class DevModeManager {
             this.tileTypeSelector.style.display = 'block';
         }
         
+        // Update building manager visibility and origin markers
+        this.buildingManager.updateLayerVisibility();
+        this.buildingManager.updateOriginMarkersVisibility();
+        
         // Store initial camera position
         this.lastCameraPosition.copy(camera.position);
         
         this.updateVisualization();
         this.updateGrid();
         console.log('Dev Mode activated - Collision disabled, tile visualization enabled');
-        console.log('Controls: Left-click = Edit tile, Right-click = Add/Delete tile');
+        console.log('Controls: Left-click = Edit tile, Right-click = Add/Delete tile, B = Object placement');
         
         // Start camera monitoring for efficient updates
         this.startCameraMonitoring();
@@ -312,6 +365,10 @@ export class DevModeManager {
         // Hide any open tile grids
         this.hideTileGrid();
         this.hidePopupTileGrid();
+        
+        // Clean up building manager
+        this.buildingManager.cleanup();
+        this.buildingManager.updateOriginMarkersVisibility();
         
         // Stop camera monitoring
         this.stopCameraMonitoring();
@@ -728,6 +785,7 @@ export class DevModeManager {
             Left-click: Edit tile<br>
             Right-click: Add/Delete tile<br>
             <strong>E</strong>: Toggle expansion mode<br>
+            <strong>B</strong>: Toggle building mode<br>
             <strong>Q</strong>: Switch create/erase tool (in expansion)<br>
             <strong>G</strong>: Toggle grid<br>
             <strong>Ctrl+Z</strong>: Undo<br>
@@ -956,6 +1014,8 @@ export class DevModeManager {
         this.saveDebounceTimer = setTimeout(() => {
             updateTilemap();
             saveTilemap();
+            // Also save objects
+            this.buildingManager.saveObjectsToFile();
         }, 500); // Save 500ms after last change
     }
     
@@ -1059,6 +1119,11 @@ export class DevModeManager {
         const groundPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
         const worldPosition = new THREE.Vector3();
         raycaster.ray.intersectPlane(groundPlane, worldPosition);
+        
+        // First check if building manager handles this (for object deletion)
+        if (this.buildingManager.handleRightClick(event, worldPosition)) {
+            return; // Building manager handled it
+        }
         
         // Round to integer tile coordinates
         const tileX = Math.round(worldPosition.x);
@@ -1240,9 +1305,21 @@ export class DevModeManager {
     updateExpansionModeUI() {
         if (!this.expansionModeUI) return;
         
-        const toolIcon = this.expansionTool === 'create' ? '🏗️' : '🗑️';
-        const toolName = this.expansionTool === 'create' ? 'CREATE' : 'ERASE';
-        const toolColor = this.expansionTool === 'create' ? 'rgba(0, 200, 100, 0.95)' : 'rgba(220, 50, 50, 0.95)';
+        let toolIcon, toolName, toolColor;
+        
+        if (this.expansionTool === 'create') {
+            toolIcon = '🏗️';
+            toolName = 'CREATE';
+            toolColor = 'rgba(0, 200, 100, 0.95)';
+        } else if (this.expansionTool === 'erase') {
+            toolIcon = '🗑️';
+            toolName = 'ERASE';
+            toolColor = 'rgba(220, 50, 50, 0.95)';
+        } else if (this.expansionTool === 'walkability') {
+            toolIcon = '🚶';
+            toolName = 'WALKABILITY';
+            toolColor = 'rgba(255, 165, 0, 0.95)';
+        }
         
         this.expansionModeUI.style.background = toolColor;
         this.expansionModeUI.innerHTML = `
@@ -1253,7 +1330,7 @@ export class DevModeManager {
                         EXPANSION MODE - ${toolName} TOOL
                     </div>
                     <div style="font-size: 12px; opacity: 0.9;">
-                        Click & drag to ${this.expansionTool} areas • <strong>Q</strong> to switch tools • <strong>E</strong>/<strong>Esc</strong> to exit
+                        Click & drag to ${this.expansionTool === 'walkability' ? 'toggle walkability' : this.expansionTool} • <strong>Q</strong> to switch tools • <strong>E</strong>/<strong>Esc</strong> to exit
                     </div>
                 </div>
             </div>
@@ -1261,7 +1338,13 @@ export class DevModeManager {
     }
     
     toggleExpansionTool() {
-        this.expansionTool = this.expansionTool === 'create' ? 'erase' : 'create';
+        if (this.expansionTool === 'create') {
+            this.expansionTool = 'erase';
+        } else if (this.expansionTool === 'erase') {
+            this.expansionTool = 'walkability';
+        } else {
+            this.expansionTool = 'create';
+        }
         this.updateExpansionModeUI();
         console.log(`Switched to ${this.expansionTool.toUpperCase()} tool`);
     }
@@ -1381,10 +1464,18 @@ export class DevModeManager {
                 opacity: 0.4,
                 side: THREE.DoubleSide
             });
-        } else {
+        } else if (this.expansionTool === 'erase') {
             // Red for erase
             material = new THREE.MeshBasicMaterial({
                 color: 0xff0000,
+                transparent: true,
+                opacity: 0.4,
+                side: THREE.DoubleSide
+            });
+        } else if (this.expansionTool === 'walkability') {
+            // Orange for walkability toggle
+            material = new THREE.MeshBasicMaterial({
+                color: 0xffa500,
                 transparent: true,
                 opacity: 0.4,
                 side: THREE.DoubleSide
@@ -1409,6 +1500,9 @@ export class DevModeManager {
                     }
                 } else if (this.expansionTool === 'erase' && existingTile) {
                     // Show red preview for tiles that will be erased
+                    showPreview = true;
+                } else if (this.expansionTool === 'walkability' && existingTile) {
+                    // Show orange preview for tiles whose walkability will be toggled
                     showPreview = true;
                 }
                 
@@ -1478,7 +1572,7 @@ export class DevModeManager {
                 }
             }
             console.log(`Created/Modified ${modifiedCount} tiles in area (${minX},${minY}) to (${maxX},${maxY})`);
-        } else {
+        } else if (this.expansionTool === 'erase') {
             // Erase tiles
             for (let x = minX; x <= maxX; x++) {
                 for (let y = minY; y <= maxY; y++) {
@@ -1501,6 +1595,34 @@ export class DevModeManager {
                 }
             }
             console.log(`Erased ${modifiedCount} tiles in area (${minX},${minY}) to (${maxX},${maxY})`);
+        } else if (this.expansionTool === 'walkability') {
+            // Toggle walkability of existing tiles
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    const existingTile = tiles.find(tile => 
+                        tile.position.x === x && tile.position.y === y
+                    );
+                    
+                    if (existingTile) {
+                        const currentWalkable = existingTile.userData.walkable;
+                        const newWalkable = !currentWalkable;
+                        
+                        batchActions.push({
+                            type: 'walkability',
+                            x: x,
+                            y: y,
+                            originalTileType: existingTile.userData.type || '',
+                            originalWalkable: currentWalkable,
+                            newTileType: existingTile.userData.type || '',
+                            newWalkable: newWalkable
+                        });
+                        
+                        this.modifyTileQuiet(existingTile, existingTile.userData.type || '', newWalkable);
+                        modifiedCount++;
+                    }
+                }
+            }
+            console.log(`Toggled walkability for ${modifiedCount} tiles in area (${minX},${minY}) to (${maxX},${maxY})`);
         }
         
         // Add batch operation to undo stack if any changes were made
@@ -1586,11 +1708,25 @@ export class DevModeManager {
                 }
                 break;
                 
+            case 'walkability':
+                // Undo walkability change by restoring original walkability
+                const tileToRestoreWalkability = tiles.find(t => t.position.x === action.x && t.position.y === action.y);
+                if (tileToRestoreWalkability) {
+                    this.modifyTileQuiet(tileToRestoreWalkability, action.originalTileType, action.originalWalkable);
+                }
+                break;
+                
             case 'batch':
                 // Undo batch operation by undoing each individual action in reverse
                 for (let i = action.actions.length - 1; i >= 0; i--) {
                     this.executeUndo(action.actions[i]);
                 }
+                break;
+                
+            case 'object_place':
+            case 'object_remove':
+                // Delegate object undo to building manager
+                this.buildingManager.undoObjectAction(action);
                 break;
         }
         
@@ -1620,11 +1756,25 @@ export class DevModeManager {
                 }
                 break;
                 
+            case 'walkability':
+                // Redo walkability change
+                const tileToModifyWalkability = tiles.find(t => t.position.x === action.x && t.position.y === action.y);
+                if (tileToModifyWalkability) {
+                    this.modifyTileQuiet(tileToModifyWalkability, action.newTileType, action.newWalkable);
+                }
+                break;
+                
             case 'batch':
                 // Redo batch operation by redoing each individual action
                 for (const subAction of action.actions) {
                     this.executeRedo(subAction);
                 }
+                break;
+                
+            case 'object_place':
+            case 'object_remove':
+                // Delegate object redo to building manager
+                this.buildingManager.redoObjectAction(action);
                 break;
         }
         
@@ -2351,6 +2501,26 @@ export class DevModeManager {
             
             this.selectedLabel.textContent = this.formatTileName(this.selectedTileType);
         }
+    }
+    
+    getWorldPositionFromMouse(event) {
+        // Get mouse position relative to canvas
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        
+        // Calculate world position from mouse
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Project ray onto the ground plane (z = 0 for top-down view)
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const worldPosition = new THREE.Vector3();
+        const intersect = raycaster.ray.intersectPlane(groundPlane, worldPosition);
+        
+        return intersect ? worldPosition : null;
     }
     
     updateUndoRedoButtons() {

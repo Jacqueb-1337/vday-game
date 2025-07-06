@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { devMode, initializeDevMode } from './src/devMode.js';
+import { devModeManager } from './src/DevModeManager.js';
 import { camera, updateCameraAspect } from './src/camera.js'; // Import camera and updateCameraAspect
 import { moveDirection, velocity, maxSpeed, acceleration, deceleration } from './src/controls.js'; // Import controls
 import { renderer, bloomLayer, composer, bloomPass, renderScene, setupRenderPass } from './src/render.js'; // Import rendering and bloom setup
@@ -16,8 +16,8 @@ const path = require('path');
 export const scene = new THREE.Scene();
 setupRenderPass(scene);
 
-// Initialize dev mode manager with scene
-initializeDevMode(scene);
+// Initialize DevModeManager
+devModeManager.init(scene);
 
 console.log(`Loading tilemap from: ${tilemapPath}`);
 
@@ -163,7 +163,7 @@ function handleNPCCollisions() {
 let prevDirection = 'south';
 let prevMoveDirection = { x: 0, y: 0 };
 
-const dynamicZIndexTextures = ['tall_grass*', 'npc*']; // Example wildcard for dynamic z-index textures
+const dynamicZIndexTextures = ['tall_grass*', 'npc*', 'tree*', 'house*', 'building*', 'fence*']; // Patterns for dynamic z-index textures
 
 function isDynamicZIndexTexture(textureType) {
     if (!textureType) return false; // Handle undefined textureType
@@ -183,13 +183,29 @@ document.addEventListener("keydown", (event) => {
     if (event.key === "E") { // Press 'E' to collect fireflies
         fireflies.forEach((firefly, index) => {
             const distance = player.position.distanceTo(firefly.position);
-            if (distance < 1) { // Check if player is close enough
+            if (distance < 1) // Check if player is close enough
+            {
                 scene.remove(firefly);
                 fireflies.splice(index, 1);
                 collectedFireflies++;
                 console.log(`Collected a firefly! Total: ${collectedFireflies}`);
             }
         });
+    }
+
+    // Toggle dev mode with backtick key
+    if (event.key === "`") {
+        if (devModeManager.isActive) {
+            devModeManager.deactivate();
+        } else {
+            devModeManager.activate();
+        }
+    }
+    
+    // Refresh/redraw map with F5 key
+    if (event.key === "F5") {
+        event.preventDefault(); // Prevent browser refresh
+        refreshMap();
     }
 });
 
@@ -284,7 +300,7 @@ function animate() {
     const isWalkable = tiles.some(t => checkCollision(player.position.x, player.position.y, hitbox.geometry.parameters.width, hitbox.geometry.parameters.height, t.position.x, t.position.y, 1, 1) && t.userData.walkable);
     document.getElementById('walkable').innerText = `Walkable: ${isWalkable ? 'Yes' : 'No'}`;
 
-    hitbox.material.wireframe = window.devMode;
+    hitbox.material.wireframe = devModeManager.isActive;
 
     if (moveDirection.x > 0) playerDirection = 'east';
     else if (moveDirection.x < 0) playerDirection = 'west';
@@ -314,6 +330,7 @@ function animate() {
     let nearestTile = null;
     let nearestDistance = Infinity;
 
+    // Handle dynamic z-index for tiles
     tiles.forEach(tile => {
         if (isDynamicZIndexTexture(tile.userData.type)) {
             const distance = Math.hypot(tile.position.x - player.position.x, tile.position.y - player.position.y);
@@ -324,28 +341,202 @@ function animate() {
         }
     });
 
-    if (nearestTile) {
-        const halfwayPoint = nearestTile.position.y - 0.4;
-        if (playerBottomY < halfwayPoint) {
-            nearestTile.position.z = player.position.z - 1;
+    // Reset all dynamic tiles to default z position first
+    tiles.forEach(tile => {
+        if (isDynamicZIndexTexture(tile.userData.type)) {
+            tile.position.z = 0;
+        }
+    });
+
+    // Then set the z position for the nearest tile
+    if (nearestTile && nearestDistance < 2) { // Only interact if within 2 units
+        nearestTile.position.z = calculateDynamicZIndex(playerBottomY, nearestTile.position.y, player.position.z);
+    }
+
+    // Handle dynamic z-index for NPCs
+    npcs.forEach(npc => {
+        // Check if player is close enough to this NPC for z-index interaction
+        const distance = Math.hypot(npc.position.x - player.position.x, npc.position.y - player.position.y);
+        if (distance < 3) { // Within 3 units for interaction
+            npc.position.z = calculateDynamicZIndex(playerBottomY, npc.position.y, player.position.z);
         } else {
-            nearestTile.position.z = player.position.z + 1;
+            // Reset NPC to default z position when player is far away
+            npc.position.z = 0;
+        }
+    });
+
+    // Handle dynamic z-index for building objects
+    if (devModeManager && devModeManager.buildingManager && devModeManager.buildingManager.buildings) {
+        devModeManager.buildingManager.buildings.forEach(building => {
+            if (building.mesh) {
+                // Calculate building center and interaction area
+                const buildingCenterX = building.position.x + (building.size.width - 1) / 2;
+                const buildingCenterY = building.position.y + (building.size.height - 1) / 2;
+                const maxSize = Math.max(building.size.width, building.size.height);
+                const distance = Math.hypot(buildingCenterX - player.position.x, buildingCenterY - player.position.y);
+                
+                if (distance < maxSize + 2) { // Within building size + 2 units for interaction
+                    // Use the building's center point for z-index calculation
+                    building.mesh.position.z = calculateDynamicZIndex(playerBottomY, buildingCenterY, player.position.z);
+                } else {
+                    // Reset building to default z position when player is far away
+                    building.mesh.position.z = 0;
+                }
+            }
+        });
+    }
+
+    // Log z-index interactions (only in dev mode and when there are interactions)
+    if (devModeManager.isActive) {
+        let interactionLog = [];
+        
+        // Check for dynamic tile interactions
+        if (nearestTile && nearestDistance < 2) {
+            interactionLog.push(`Tile (${nearestTile.textureType}): z=${nearestTile.position.z}`);
+        }
+        
+        // Check for NPC interactions
+        npcs.forEach((npc, index) => {
+            if (npc.position.z !== 0) {
+                interactionLog.push(`NPC${index}: z=${npc.position.z}`);
+            }
+        });
+        
+        // Check for building interactions
+        if (devModeManager.buildingManager && devModeManager.buildingManager.buildings) {
+            devModeManager.buildingManager.buildings.forEach((building, index) => {
+                if (building.mesh && building.mesh.position.z !== 0) {
+                    interactionLog.push(`${building.objectType}: z=${building.mesh.position.z}`);
+                }
+            });
+        }
+        
+        // Only log if there are active z-index interactions
+        if (interactionLog.length > 0) {
+            console.log(`Player z=${player.position.z} | Active z-interactions: ${interactionLog.join(', ')}`);
         }
     }
 
-    // Log player and NPC positions and z-layers
-    console.log(`Player Position: X: ${player.position.x}, Y: ${player.position.y}, Z: ${player.position.z}`);
-    npcs.forEach(npc => {
-        console.log(`NPC Position: X: ${npc.position.x}, Y: ${npc.position.y}, Z: ${npc.position.z}`);
-    });
-
     renderScene(scene);
 
-    if (window.devMode) {
+    if (devModeManager.isActive) {
         drawDevModeMarkers(scene, tiles);
     }
 
     prevMoveDirection.x = moveDirection.x;
     prevMoveDirection.y = moveDirection.y;
 }
+
+// Utility function to calculate z-index based on player and object positions
+function calculateDynamicZIndex(playerBottomY, objectCenterY, playerZ, offset = 0.25) {
+    const halfwayPoint = objectCenterY - offset;
+    if (playerBottomY < halfwayPoint) {
+        return playerZ - 1; // Object is in front of player (player is behind)
+    } else {
+        return playerZ + 1; // Object is behind player (player is in front)
+    }
+}
+
+// Map refresh function - redraws the entire map like a reboot
+export function refreshMap() {
+    console.log('Refreshing map...');
+
+    // Store current dev mode state
+    const wasDevModeActive = devModeManager.isActive;
+    const wasExpansionMode = devModeManager.expansionMode;
+    const currentExpansionTool = devModeManager.expansionTool;
+
+    // Store building mode state
+    const wasBuildingMode = devModeManager.buildingManager.buildingMode;
+    const selectedObjectType = devModeManager.buildingManager.selectedObjectType;
+
+    try {
+        // 1. Clear existing tiles from scene (preserve NPCs, fireflies, player, objects)
+        const tilesToRemove = [];
+        scene.traverse((child) => {
+            // Remove tiles but keep important objects
+            if (child.isMesh && 
+                child !== player && 
+                child !== hitbox && 
+                !npcs.includes(child) && // Preserve NPCs
+                !fireflies.includes(child) && // Preserve fireflies
+                !child.userData.isObjectOverlay &&
+                !child.userData.isDevModeOverlay &&
+                !child.userData.isDevModeGrid &&
+                !child.userData.isOriginMarker &&
+                !child.userData.isPreview &&
+                !child.userData.isPreviewOutline &&
+                !child.userData.isPreviewOrigin &&
+                child.name !== 'buildingPreview' &&
+                !child.name?.startsWith('object_')) {
+                tilesToRemove.push(child);
+            }
+        });
+
+        // Remove collected tiles
+        tilesToRemove.forEach(tile => {
+            scene.remove(tile);
+            if (tile.geometry) tile.geometry.dispose();
+            if (tile.material) {
+                if (tile.material.map) tile.material.map.dispose();
+                tile.material.dispose();
+            }
+        });
+
+        // Clear tiles array
+        tiles.length = 0;
+
+        // 2. Temporarily deactivate dev mode to avoid conflicts during reload
+        if (wasDevModeActive) {
+            devModeManager.deactivate();
+        }
+
+        // 3. Reload tilemap and recreate tiles
+        loadTilemap().then(() => {
+            console.log('Map tiles reloaded successfully');
+
+            // 4. Restore dev mode if it was active
+            if (wasDevModeActive) {
+                devModeManager.activate();
+
+                // Restore expansion mode state
+                if (wasExpansionMode) {
+                    devModeManager.expansionMode = true;
+                    devModeManager.expansionTool = currentExpansionTool;
+                    devModeManager.showExpansionModeUI();
+                }
+            }
+
+            // 5. Restore building mode if it was active
+            if (wasBuildingMode) {
+                devModeManager.buildingManager.buildingMode = true;
+                devModeManager.buildingManager.selectedObjectType = selectedObjectType;
+                devModeManager.buildingManager.showObjectSelector();
+                devModeManager.buildingManager.updateBuildingPreview();
+            }
+
+            // 6. Reload building overlays (they should persist through map refresh)
+            devModeManager.buildingManager.loadObjectsFromFile();
+
+            // 7. Update visibility states
+            devModeManager.buildingManager.updateLayerVisibility();
+            if (wasDevModeActive) {
+                devModeManager.buildingManager.updateOriginMarkersVisibility();
+            }
+
+            console.log('Map refresh completed successfully');
+        }).catch((error) => {
+            console.error('Error during map refresh:', error);
+
+            // Try to restore states even if reload failed
+            if (wasDevModeActive) {
+                devModeManager.activate();
+            }
+        });
+
+    } catch (error) {
+        console.error('Error during map refresh:', error);
+    }
+}
+
 animate();
