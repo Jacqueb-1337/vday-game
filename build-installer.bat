@@ -5,17 +5,24 @@ echo ========================================
 echo.
 
 REM Check if Inno Setup is installed
-if not exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" (
-    if not exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" (
-        echo ERROR: Inno Setup 6 not found!
-        echo Please download and install Inno Setup from: https://jrsoftware.org/isinfo.php
-        echo.
-        pause
-        exit /b 1
-    )
-    set ISCC="%ProgramFiles%\Inno Setup 6\ISCC.exe"
-) else (
+set ISCC_FOUND=0
+if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" (
     set ISCC="%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+    set ISCC_FOUND=1
+) else if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" (
+    set ISCC="%ProgramFiles%\Inno Setup 6\ISCC.exe"
+    set ISCC_FOUND=1
+) else if exist "build\tools\inno-setup-portable\ISCC.exe" (
+    set ISCC="build\tools\inno-setup-portable\ISCC.exe"
+    set ISCC_FOUND=1
+    echo Using portable Inno Setup...
+)
+
+if %ISCC_FOUND%==0 (
+    echo Inno Setup not found in system. Downloading portable version...
+    echo.
+    call build-installer-portable.bat
+    exit /b %ERRORLEVEL%
 )
 
 REM Check if NW.js is set up
@@ -34,7 +41,8 @@ REM Build the installer
 echo Building installer with Inno Setup...
 %ISCC% "installer\windows\Willowmere.iss"
 
-if %ERRORLEVEL% EQU 0 (
+REM Check if installer was actually created (better than checking exit code due to warnings)
+if exist "dist\Willowmere-Setup-v1.0.0.exe" (
     echo.
     echo ========================================
     echo     Installer Built Successfully!

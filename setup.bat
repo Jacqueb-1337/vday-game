@@ -33,7 +33,7 @@ if "%BUILD_TYPE%"=="dev" (
     set FLAVOR=sdk
     echo Setting up NW.js Development version with DevTools...
 ) else (
-    set FLAVOR=normal
+    set FLAVOR=
     echo Setting up NW.js Production version...
 )
 
@@ -44,8 +44,12 @@ if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
     set ARCH=win-ia32
 )
 
-REM Set download info
-set FILENAME=nwjs-%FLAVOR%-%NWJS_VERSION%-%ARCH%
+REM Set download info based on build type
+if "%BUILD_TYPE%"=="dev" (
+    set FILENAME=nwjs-sdk-%NWJS_VERSION%-%ARCH%
+) else (
+    set FILENAME=nwjs-%NWJS_VERSION%-%ARCH%
+)
 set URL=https://dl.nwjs.io/%NWJS_VERSION%/%FILENAME%.zip
 set DOWNLOAD_FILE=%FILENAME%.zip
 

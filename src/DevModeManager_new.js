@@ -440,20 +440,6 @@ export class DevModeManager {
         }
     }
 
-    debouncedSave() {
-        clearTimeout(this.saveDebounceTimer);
-        this.saveDebounceTimer = setTimeout(() => {
-            saveTilemap();
-        }, 500); // Save 500ms after last change
-    }
-
-    refresh() {
-        // Refresh visualization if active
-        if (this.isActive && this.visualization) {
-            this.visualization.updateVisualization();
-        }
-    }
-
     // Cleanup method
     cleanup() {
         if (!this.isInitialized) return;
@@ -480,6 +466,3 @@ export class DevModeManager {
         this.isActive = false;
     }
 }
-
-// Export both the class and an instance for backward compatibility
-export const devModeManager = new DevModeManager();

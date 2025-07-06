@@ -108,6 +108,17 @@ scene.add(hitbox);
 
 window.addEventListener('resize', () => {
     updateCameraAspect();
+    
+    // Update renderer size
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Update composer size for post-processing
+    composer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Update bloom pass resolution
+    if (bloomPass) {
+        bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+    }
 });
 
 export function checkCollision(px, py, pw, ph, tx, ty, tw, th) {
@@ -412,9 +423,9 @@ function animate() {
         }
         
         // Only log if there are active z-index interactions
-        if (interactionLog.length > 0) {
+        /* if (interactionLog.length > 0) {
             console.log(`Player z=${player.position.z} | Active z-interactions: ${interactionLog.join(', ')}`);
-        }
+        } */
     }
 
     renderScene(scene);

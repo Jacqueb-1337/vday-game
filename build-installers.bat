@@ -35,10 +35,7 @@ goto :end
 :all
 echo Building for all platforms...
 echo.
-echo Building Windows installer...
-call build-installer.bat
-echo.
-echo For macOS and Linux, please run build-installers.sh on those platforms
+call build-all-platforms.bat
 goto :end
 
 :help

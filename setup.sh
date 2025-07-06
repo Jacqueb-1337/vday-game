@@ -28,7 +28,7 @@ if [ "$BUILD_TYPE" = "dev" ]; then
     FLAVOR="sdk"
     echo "Setting up NW.js Development version with DevTools..."
 else
-    FLAVOR="normal"
+    FLAVOR=""
     echo "Setting up NW.js Production version..."
 fi
 
@@ -62,7 +62,11 @@ case "$OS" in
 esac
 
 # Set download info
-FILENAME="nwjs-${FLAVOR}-${NWJS_VERSION}-${PLATFORM}"
+if [ "$BUILD_TYPE" = "dev" ]; then
+    FILENAME="nwjs-sdk-${NWJS_VERSION}-${PLATFORM}"
+else
+    FILENAME="nwjs-${NWJS_VERSION}-${PLATFORM}"
+fi
 URL="https://dl.nwjs.io/${NWJS_VERSION}/${FILENAME}.${EXTENSION}"
 DOWNLOAD_FILE="${FILENAME}.${EXTENSION}"
 

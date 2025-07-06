@@ -81,15 +81,11 @@ case "$BUILD_TARGET" in
         ;;
     "linux")
         build_linux
-        ;;
-    "all")
+        ;;    "all")
         echo "Building for all platforms..."
         echo
-        build_windows
-        echo
-        build_macos
-        echo
-        build_linux
+        chmod +x build-all-platforms.sh
+        ./build-all-platforms.sh
         ;;
     "help"|"--help"|"-h")
         show_help

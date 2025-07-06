@@ -3,24 +3,24 @@
 AppName=Willowmere
 AppVersion=1.0.0
 AppPublisher=jacqueb
-AppPublisherURL=https://github.com/jacqueb
-AppSupportURL=https://github.com/jacqueb/willowmere
-AppUpdatesURL=https://github.com/jacqueb/willowmere
+AppPublisherURL=https://github.com/Jacqueb-1337
+AppSupportURL=https://github.com/Jacqueb-1337/willowmere
+AppUpdatesURL=https://github.com/Jacqueb-1337/willowmere
 DefaultDirName={autopf}\jacqueb\Willowmere
 DefaultGroupName=Willowmere
 AllowNoIcons=yes
-LicenseFile=LICENSE
-OutputDir=dist
+; LicenseFile=LICENSE ; Commented out - no license file available
+OutputDir=..\..\dist
 OutputBaseFilename=Willowmere-Setup-v1.0.0
-SetupIconFile=src\assets\icon.ico
+; SetupIconFile=src\assets\icon.ico ; Commented out - no icon file available
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 
-; Privileges - install for all users by default
-PrivilegesRequired=admin
+; Privileges - allow user choice between admin and user installation
+PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
 ; Uninstall
@@ -32,26 +32,25 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1
 Name: "associatefiles"; Description: "Associate .willowmere save files"; GroupDescription: "File associations"
 
 [Files]
 ; Game files
-Source: "nwjs\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "src\*"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "index.html"; DestDir: "{app}"; Flags: ignoreversion
-Source: "main.js"; DestDir: "{app}"; Flags: ignoreversion
-Source: "style.css"; DestDir: "{app}"; Flags: ignoreversion
-Source: "package.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "tilemap.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "objectmap.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "npcs.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dialogue.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion; DestName: "LICENSE.txt"
+Source: "..\..\nwjs\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\src\*"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\index.html"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\main.js"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\style.css"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\package.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\tilemap.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\objectmap.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\npcs.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dialogue.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+; Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion; DestName: "LICENSE.txt" ; Commented out - no license file
 
-; Documentation for modders
-Source: "docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: DirExists(ExpandConstant('{srcexe}\..\docs'))
+; Documentation for modders would go here if docs/ folder existed
+; Source: "..\..\docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 ; Start menu shortcuts
@@ -62,9 +61,6 @@ Name: "{group}\{cm:UninstallProgram,Willowmere}"; Filename: "{uninstallexe}"
 
 ; Desktop shortcut (optional)
 Name: "{autodesktop}\Willowmere"; Filename: "{app}\Willowmere.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Willowmere.exe"; Tasks: desktopicon
-
-; Quick launch shortcut (optional, for older Windows)
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Willowmere"; Filename: "{app}\Willowmere.exe"; WorkingDir: "{app}"; Tasks: quicklaunchicon
 
 [Registry]
 ; File associations for save files (optional)

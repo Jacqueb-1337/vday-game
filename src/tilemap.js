@@ -109,6 +109,114 @@ export function createTilemap() {
     }
 }
 
+// Selective tile redraw - only redraw specific tiles instead of the entire map
+export function redrawTile(x, y) {
+    console.log(`Redrawing tile at (${x}, ${y})`);
+    
+    // Find existing tile at these coordinates
+    const existingTileIndex = tiles.findIndex(tile => 
+        tile.position.x === x && tile.position.y === y
+    );
+    
+    // Find tilemap data for this position
+    const tileData = tilemap.find(t => t.x === x && t.y === y);
+    
+    // Remove existing tile from scene and dispose resources
+    if (existingTileIndex !== -1) {
+        const existingTile = tiles[existingTileIndex];
+        scene.remove(existingTile);
+        
+        // Dispose of geometry and materials to prevent memory leaks
+        if (existingTile.geometry) existingTile.geometry.dispose();
+        if (existingTile.material) {
+            if (existingTile.material.map) existingTile.material.map.dispose();
+            existingTile.material.dispose();
+        }
+        
+        // Remove from tiles array
+        tiles.splice(existingTileIndex, 1);
+    }
+    
+    // Create new tile at this position
+    createSingleTile(x, y, tileData);
+    
+    console.log(`Successfully redrawn tile at (${x}, ${y})`);
+}
+
+// Redraw multiple tiles efficiently
+export function redrawTiles(coordinates) {
+    console.log(`Redrawing ${coordinates.length} tiles`);
+    
+    coordinates.forEach(({ x, y }) => {
+        redrawTile(x, y);
+    });
+    
+    console.log(`Successfully redrawn ${coordinates.length} tiles`);
+}
+
+// Create a single tile at specific coordinates (helper function)
+function createSingleTile(x, y, tileData) {
+    let geometry = new THREE.PlaneGeometry(1, 1);
+    let material;
+
+    if (tileData && tileData.type) {
+        const texturePath = `src/assets/tiles/${tileData.type}.png`;
+        const texture = loadTileTexture(texturePath);
+        material = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true, // Allow transparency for overlay textures
+            opacity: 1.0, // Set opacity to fully opaque
+            blending: THREE.NormalBlending // Use normal blending mode
+        });
+
+        // Handle subtype for underlying texture
+        if (tileData.subtype) {
+            const subtypePath = `src/assets/tiles/${tileData.subtype}.png`;
+            const subtypeTexture = loadTileTexture(subtypePath);
+            const subtypeMaterial = new THREE.MeshBasicMaterial({
+                map: subtypeTexture,
+                transparent: false, // Ensure the material is not transparent
+                opacity: 1.0, // Set opacity to fully opaque
+                blending: THREE.NormalBlending // Use normal blending mode
+            });
+
+            let subtypeTile = new THREE.Mesh(geometry, subtypeMaterial);
+            subtypeTile.position.set(x, y, getLayerIndex(tileData.subtype)); // Set z position based on subtype layer
+            scene.add(subtypeTile);
+        } else {
+            // Default to grassgeneric.png if no subtype is specified
+            const defaultSubtypePath = 'src/assets/tiles/grassgeneric.png';
+            const defaultSubtypeTexture = loadTileTexture(defaultSubtypePath);
+            const defaultSubtypeMaterial = new THREE.MeshBasicMaterial({
+                map: defaultSubtypeTexture,
+                transparent: false, // Ensure the material is not transparent
+                opacity: 1.0, // Set opacity to fully opaque
+                blending: THREE.NormalBlending // Use normal blending mode
+            });
+
+            let defaultSubtypeTile = new THREE.Mesh(geometry, defaultSubtypeMaterial);
+            defaultSubtypeTile.position.set(x, y, getLayerIndex('grassgeneric')); // Set z position based on default subtype layer
+            scene.add(defaultSubtypeTile);
+        }
+    } else {
+        // Default to grassgeneric.png and sprinkle in grassweeds.png
+        const texturePath = Math.random() < 0.1 ? 'src/assets/tiles/grassweeds.png' : 'src/assets/tiles/grassgeneric.png';
+        const texture = loadTileTexture(texturePath);
+        material = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: false, // Ensure the material is not transparent
+            opacity: 1.0, // Set opacity to fully opaque
+            blending: THREE.NormalBlending // Use normal blending mode
+        });
+    }
+
+    let tile = new THREE.Mesh(geometry, material);
+    tile.position.set(x, y, tileData?.type ? getLayerIndex(tileData.type) : 0); // Set the layer index based on texture type
+    tile.userData = { ...tileData }; // Preserve all attributes
+    scene.add(tile);
+    tiles.push(tile);
+}
+
 // Update Tilemap Array
 export function updateTilemap() {
     tilemap = tiles.map(tile => ({
