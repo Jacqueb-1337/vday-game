@@ -1,25 +1,22 @@
 {
-  "name": "cozy-adventure-game",
+  "name": "vday-game",
   "version": "1.0.0",
-  "description": "A cozy adventure game built with Three.js featuring a painterly 32x32 tile-based world.",
+  "description": "A 2D game with 3D movement capabilities using Three.js and NW.js",
   "main": "index.html",
-  "window": {
-    "title": "Cozy Adventure Game",
-    "width": 800,
-    "height": 600,
-    "toolbar": true,
-    "show_in_taskbar": true,
-    "resizable": true
-  },
-  "chromium-args": "--enable-logging --enable-devtools-experiments",
-  "dependencies": {
-  },
-  "keywords": [
-    "game",
-    "three.js",
-    "adventure",
-    "tile-based"
-  ],
+  "keywords": ["game", "2d", "3d", "threejs", "nwjs", "stardew-like"],
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "window": {
+    "title": "VDay Game",
+    "width": 1280,
+    "height": 720,
+    "min_width": 800,
+    "min_height": 600,
+    "resizable": true,
+    "show_in_taskbar": true,
+    "frame": true,
+    "kiosk": false,
+    "icon": "src/assets/icon.png"
+  },
+  "chromium-args": "--disable-web-security --allow-file-access-from-files"
 }
